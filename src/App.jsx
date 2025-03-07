@@ -9,6 +9,7 @@ import Qrcode from "./components/qrcode/Qrcode";
 import Attendance from "./components/attendance/attendance";
 import { StudentsAttendance } from "./components/getAttendance/StudentsAttendance";
 import LectureForm from "./components/lectureForm/LectureForm";
+import QrcodeHistory from "./components/qr-history/QrcodeHistory";
 
 function App() {
   const { user } = useAuthContext();
@@ -28,6 +29,10 @@ function App() {
               element={user ? <Qrcode /> : <Navigate to="/login" />}
             />
             <Route
+              path="/qrcode/:id"
+              element={<Attendance />}
+            />
+            <Route
               path="attendance"
               element={user ? <StudentsAttendance /> : <Navigate to="/login" />}
             />
@@ -36,8 +41,8 @@ function App() {
               element={user ? <LectureForm /> : <Navigate to="/login" />}
             />
             <Route
-              path="qrcode/:id"
-              element={<Attendance />}
+              path="history"
+              element={user ? <QrcodeHistory /> : <Navigate to="/login" />}
             />
             <Route
               path="/login"

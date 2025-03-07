@@ -1,33 +1,61 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 const LectureForm = () => {
     const [course, setCourse] = useState("");
     const [section, setSection] = useState("");
+    const [gpsLocation, setGpsLocation] = useState({ latitude: null, longitude: null });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
-    const [qrCode, setQrCode] = useState("")
-    const navigate = useNavigate()
+    const navigate = useNavigate();
+
+    // Fetch GPS location when component mounts
+    useEffect(() => {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setGpsLocation({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                    });
+                },
+                (error) => {
+                    setMessage("Failed to get location. Please enable GPS.");
+                }
+            );
+        } else {
+            setMessage("Geolocation is not supported by your browser.");
+        }
+    }, []);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMessage("");
 
-        let token = localStorage.getItem("user"); // Retrieve token from localStorage
-        const apiUrl = "http://localhost:5000/api/instructors/create-lecture";
-        token = JSON.parse(token).token;
+        let token = localStorage.getItem("user");
         if (!token) {
             setMessage("Authentication token not found.");
             setLoading(false);
             return;
         }
+        token = JSON.parse(token).token;
+
+        if (!gpsLocation.latitude || !gpsLocation.longitude) {
+            setMessage("GPS location not available. Please enable location services.");
+            setLoading(false);
+            return;
+        }
+
         const payload = {
             course,
             section,
+            gpsLocation,
         };
+
         try {
-            const response = await axios.post(apiUrl, payload, {
+            const response = await axios.post("https://qr-code-generator-backend-nodejs-production.up.railway.app/api/instructors/create-lecture", payload, {
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
@@ -35,7 +63,6 @@ const LectureForm = () => {
             });
 
             setMessage("Lecture created successfully!");
-            setQrCode(response.data.lecture.qrCode);
             setCourse("");
             setSection("");
             navigate("/qrcode", { state: { data: response.data.lecture } });

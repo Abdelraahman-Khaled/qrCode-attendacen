@@ -12,7 +12,7 @@ const useLogin = () => {
     setError(null);
 
     try {
-      const { data } = await axios.post("http://localhost:5000/api/instructors/login", {
+      const { data } = await axios.post("https://qr-code-generator-backend-nodejs-production.up.railway.app/api/instructors/login", {
         email,
         password,
       });

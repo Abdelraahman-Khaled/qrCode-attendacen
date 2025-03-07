@@ -23,7 +23,7 @@ export const StudentsAttendance = () => {
             }
 
             const token = JSON.parse(tokenData)?.token;
-            const apiUrl = "http://localhost:5000/api/instructors/attendance";
+            const apiUrl = "https://qr-code-generator-backend-nodejs-production.up.railway.app/api/instructors/attendance";
 
             try {
                 const response = await axios.get(apiUrl, {
@@ -65,14 +65,14 @@ export const StudentsAttendance = () => {
 
         await Promise.all(
             gpsLocations.map(async (gpsLocation) => {
-                const [lat, lon] = gpsLocation.split(", ");
+                const { latitude, longitude } = gpsLocation; // Extract lat & lon
                 try {
                     const response = await axios.get(
-                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
                     );
-                    newLocations[gpsLocation] = response.data?.display_name || "Unknown Location";
+                    newLocations[JSON.stringify(gpsLocation)] = response.data?.display_name || "Unknown Location";
                 } catch (error) {
-                    newLocations[gpsLocation] = "Unknown Location";
+                    newLocations[JSON.stringify(gpsLocation)] = "Unknown Location";
                 }
             })
         );
@@ -140,7 +140,7 @@ export const StudentsAttendance = () => {
                                                             <td className="py-3 px-4">{student.department}</td>
                                                             <td className="py-3 px-4">{student.group}</td>
                                                             <td className="py-3 px-4">
-                                                                {locations[student.gpsLocation] || "Fetching..."}
+                                                                {locations[JSON.stringify(student.gpsLocation)] || "Fetching..."}
                                                             </td>
                                                             <td className="py-3 px-4 truncate max-w-xs text-sm text-gray-500">
                                                                 {student.deviceFingerprint.split(" (")[0]}
