@@ -9,7 +9,7 @@ const Home = () => {
 
         <>
 
-            <div className='flex flex-row gap-3 my-3 h-full items-center justify-center'>
+            <div className='flex flex-col md:flex-row gap-3 my-3 h-full items-center justify-center'>
                 <Link className='bg-[#28c254] text-2xl  py-3 px-6  text-white rounded font-bold' to="/attendance">
                     attendance
                 </Link>

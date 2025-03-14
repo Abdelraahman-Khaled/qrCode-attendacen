@@ -45,7 +45,7 @@ const QrcodeHistory = () => {
                 <p className="text-center text-lg">Loading...</p>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                    {lectures.map((lecture) => (
+                    {[...lectures].reverse().map((lecture) => (
                         <Link key={lecture._id} to={`/qrcode`}
                             state={{ data: lecture }} // Passing lecture data to the Qrcode component
                         >

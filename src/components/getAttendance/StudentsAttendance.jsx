@@ -5,9 +5,7 @@ export const StudentsAttendance = () => {
     const [loading, setLoading] = useState(false);
     const [attendance, setAttendance] = useState([]);
     const [message, setMessage] = useState("");
-    const [locations, setLocations] = useState({});
     const studentsPerPage = 5; // Number of students per page
-
     const [currentPages, setCurrentPages] = useState({}); // Stores pagination for each lecture
 
     useEffect(() => {
@@ -41,15 +39,6 @@ export const StudentsAttendance = () => {
                     initialPages[lecture.lecture._id] = 1;
                 });
                 setCurrentPages(initialPages);
-
-                const uniqueLocations = new Set();
-                response.data.forEach((lecture) => {
-                    lecture.students.forEach((student) => {
-                        uniqueLocations.add(student.gpsLocation);
-                    });
-                });
-
-                fetchAllLocations([...uniqueLocations]);
             } catch (error) {
                 setMessage(error.response?.data?.message || "An error occurred. Please try again.");
             }
@@ -59,26 +48,6 @@ export const StudentsAttendance = () => {
 
         fetchAttendance();
     }, []);
-
-    const fetchAllLocations = async (gpsLocations) => {
-        const newLocations = {};
-
-        await Promise.all(
-            gpsLocations.map(async (gpsLocation) => {
-                const { latitude, longitude } = gpsLocation; // Extract lat & lon
-                try {
-                    const response = await axios.get(
-                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-                    );
-                    newLocations[JSON.stringify(gpsLocation)] = response.data?.display_name || "Unknown Location";
-                } catch (error) {
-                    newLocations[JSON.stringify(gpsLocation)] = "Unknown Location";
-                }
-            })
-        );
-
-        setLocations(newLocations);
-    };
 
     const handleNextPage = (lectureId, totalStudents) => {
         setCurrentPages((prev) => ({
@@ -92,6 +61,36 @@ export const StudentsAttendance = () => {
             ...prev,
             [lectureId]: Math.max(prev[lectureId] - 1, 1),
         }));
+    };
+
+    const handleExport = async () => {
+        let tokenData = localStorage.getItem("user");
+        if (!tokenData) {
+            setMessage("Authentication token not found.");
+            return;
+        }
+
+        const token = JSON.parse(tokenData)?.token;
+        const exportUrl = "https://qr-code-generator-backend-nodejs-production.up.railway.app/api/instructors/export-excel";
+
+        try {
+            const response = await axios.get(exportUrl, {
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                },
+                responseType: "blob", // Important for file download
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", "attendance.xlsx");
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            setMessage("Failed to export attendance data.");
+        }
     };
 
     return (
@@ -127,8 +126,6 @@ export const StudentsAttendance = () => {
                                                     <th className="py-3 px-4 text-left">Student Name</th>
                                                     <th className="py-3 px-4 text-left">Department</th>
                                                     <th className="py-3 px-4 text-left">Group</th>
-                                                    <th className="py-3 px-4 text-left">Location</th>
-                                                    <th className="py-3 px-4 text-left">Device</th>
                                                     <th className="py-3 px-4 text-left">Time</th>
                                                 </tr>
                                             </thead>
@@ -139,18 +136,12 @@ export const StudentsAttendance = () => {
                                                             <td className="py-3 px-4">{student.studentName}</td>
                                                             <td className="py-3 px-4">{student.department}</td>
                                                             <td className="py-3 px-4">{student.group}</td>
-                                                            <td className="py-3 px-4">
-                                                                {locations[JSON.stringify(student.gpsLocation)] || "Fetching..."}
-                                                            </td>
-                                                            <td className="py-3 px-4 truncate max-w-xs text-sm text-gray-500">
-                                                                {student.deviceFingerprint.split(" (")[0]}
-                                                            </td>
                                                             <td className="py-3 px-4">{new Date(student.timestamp).toLocaleTimeString()}</td>
                                                         </tr>
                                                     ))
                                                 ) : (
                                                     <tr>
-                                                        <td colSpan="6" className="py-3 px-4 text-center text-gray-500">
+                                                        <td colSpan="4" className="py-3 px-4 text-center text-gray-500">
                                                             No students attended this lecture.
                                                         </td>
                                                     </tr>
@@ -158,34 +149,20 @@ export const StudentsAttendance = () => {
                                             </tbody>
                                         </table>
                                     </div>
-
-                                    {/* Pagination Controls for Each Lecture */}
-                                    {totalStudents > studentsPerPage && (
-                                        <div className="flex justify-between items-center mt-4">
-                                            <button
-                                                onClick={() => handlePrevPage(lectureData.lecture._id)}
-                                                disabled={currentPage === 1}
-                                                className={`px-4 py-2 rounded ${currentPage === 1 ? "bg-gray-300 cursor-not-allowed" : "bg-[var(--primary)] text-white hover:bg-[#1fd352] cursor-pointer"}`}
-                                            >
-                                                Previous
-                                            </button>
-                                            <p className="text-sm text-gray-600">
-                                                Page {currentPage} of {totalPages}
-                                            </p>
-                                            <button
-                                                onClick={() => handleNextPage(lectureData.lecture._id, totalStudents)}
-                                                disabled={currentPage === totalPages}
-                                                className={`px-4 py-2 rounded ${currentPage === totalPages ? "bg-gray-300 cursor-not-allowed" : "bg-[var(--primary)] text-white hover:bg-[#1fd352] cursor-pointer"}`}
-                                            >
-                                                Next
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             );
                         })
                     ) : (
                         <p className="text-center text-lg text-gray-600">No attendance records found.</p>
+                    )}
+
+                    {!loading && attendance.length > 0 && (
+                        <button 
+                            className="px-8 py-3 mx-auto flex items-center gap-2 text-white bg-[var(--primary)] border border-[var(--primary)] rounded cursor-pointer"
+                            onClick={handleExport}
+                        >
+                            Export
+                        </button>
                     )}
                 </>
             )}
